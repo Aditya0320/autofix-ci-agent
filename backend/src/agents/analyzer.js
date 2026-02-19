@@ -13,6 +13,19 @@ const { BRANCH_NAME } = require("../config/constants");
 const { isGeminiEnabled, suggestFailures } = require("../services/gemini");
 
 /**
+ * If GITHUB_TOKEN is set and repoUrl is https://github.com/..., return URL with token for auth.
+ * Avoids "could not read Username" when cloning in non-interactive environments (and for private repos).
+ */
+function cloneUrlWithToken(repoUrl) {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (!token || typeof token !== "string" || !token.trim()) return repoUrl;
+  const trimmed = repoUrl.trim();
+  const match = trimmed.match(/^https:\/\/github\.com\/(.+)$/i);
+  if (!match) return repoUrl;
+  return `https://x-access-token:${token.trim()}@github.com/${match[1]}`;
+}
+
+/**
  * Clone repo into temp dir and checkout branch.
  * @param {string} repoUrl - GitHub repo URL
  * @param {string} [branchName] - Branch to create (default: BRANCH_NAME from constants)
@@ -21,7 +34,8 @@ const { isGeminiEnabled, suggestFailures } = require("../services/gemini");
 function cloneAndCheckout(repoUrl, branchName) {
   const branch = branchName || BRANCH_NAME;
   const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "agent-run-"));
-  execSync(`git clone --depth 1 "${repoUrl}" "${repoPath}"`, {
+  const cloneUrl = cloneUrlWithToken(repoUrl);
+  execSync("git", ["clone", "--depth", "1", cloneUrl, repoPath], {
     stdio: "pipe",
     timeout: 60000,
   });

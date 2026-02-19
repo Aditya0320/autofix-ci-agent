@@ -73,9 +73,10 @@ Runs on `http://localhost:5173`. Set `VITE_API_URL` to your backend URL for prod
 |-----------------|----------------------------|--------|
 | `PORT`          | Server port                | 3001   |
 | `MAX_RETRIES`   | Max CI/CD iterations       | 5      |
+| `GITHUB_TOKEN`  | GitHub PAT for clone/push  | —      |
 | `GEMINI_API_KEY`| Optional; see below        | —      |
 
-For push to GitHub: ensure Git is configured (e.g. `GITHUB_TOKEN` or SSH) so the agent can push the created branch.
+**GitHub auth:** For **private repos** or when you see "could not read Username" (e.g. in a server/headless environment), set `GITHUB_TOKEN` (or `GH_TOKEN`) to a [GitHub Personal Access Token](https://github.com/settings/tokens) with `repo` scope. The agent uses it for clone and push; it is only sent to `github.com`.
 
 ### Optional: Gemini API Integration
 
