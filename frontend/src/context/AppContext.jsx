@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useRef } from "react"
 
 const AppContext = createContext(null);
 
-const DEFAULT_API_BASE = "http://localhost:3001";
+const DEFAULT_API_BASE = "https://autofix-ci-agent.onrender.com";
 
 export function AppProvider({ children }) {
   const [apiBaseUrl, setApiBaseUrlState] = useState(DEFAULT_API_BASE);
