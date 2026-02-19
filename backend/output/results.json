@@ -1,0 +1,21 @@
+{
+  "runId": "sample-run-1",
+  "status": "completed",
+  "branch": "TEAM_ETS_DEEPAK_MASEEH_AI_Fix",
+  "repoUrl": "https://github.com/example/repo",
+  "startedAt": "2026-02-19T00:00:00.000Z",
+  "completedAt": "2026-02-19T00:00:00.000Z",
+  "fixes": [
+    {
+      "file": "src/foo.js",
+      "line": 42,
+      "bugType": "SyntaxError",
+      "fixDescription": "Sample fix description"
+    }
+  ],
+  "summary": {
+    "totalFixes": 1,
+    "testsPassed": true
+  },
+  "error": null
+}

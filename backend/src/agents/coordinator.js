@@ -1,0 +1,130 @@
+/**
+ * CoordinatorAgent – orchestrate pipeline with retry loop, simulated CI timeline, and score.
+ */
+
+const { BRANCH_NAME } = require("../config/constants");
+const { analyze, analyzeExisting } = require("./analyzer");
+const { applyFixes } = require("./fixAgent");
+const { commitAndPush } = require("./commitAgent");
+const { writeResults } = require("../utils/results");
+
+const maxRetries = 5;
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const BASE_SCORE = 100;
+const SPEED_BONUS = 10;
+const EFFICIENCY_PENALTY_PER_COMMIT_OVER_20 = 2;
+const COMMITS_THRESHOLD = 20;
+
+function validateParams(params) {
+  const { repoUrl, teamName, leaderName } = params || {};
+  if (!repoUrl || typeof repoUrl !== "string" || !repoUrl.trim()) {
+    throw new Error("repoUrl is required");
+  }
+  if (!teamName || typeof teamName !== "string" || !teamName.trim()) {
+    throw new Error("teamName is required");
+  }
+  if (!leaderName || typeof leaderName !== "string" || !leaderName.trim()) {
+    throw new Error("leaderName is required");
+  }
+  return { repoUrl: repoUrl.trim(), teamName: teamName.trim(), leaderName: leaderName.trim() };
+}
+
+/**
+ * Compute score breakdown (deterministic, no external services).
+ */
+function computeScore(runtimeMs, totalCommits) {
+  const baseScore = BASE_SCORE;
+  const speedBonus = runtimeMs < FIVE_MINUTES_MS ? SPEED_BONUS : 0;
+  const overCommit = Math.max(0, totalCommits - COMMITS_THRESHOLD);
+  const efficiencyPenalty = overCommit * EFFICIENCY_PENALTY_PER_COMMIT_OVER_20;
+  const finalScore = baseScore + speedBonus - efficiencyPenalty;
+  return { baseScore, speedBonus, efficiencyPenalty, finalScore };
+}
+
+/**
+ * Run the full agent pipeline with retries. Simulated CI timeline; no real CI calls.
+ * @param {Object} params - { repoUrl, teamName, leaderName }
+ * @param {Object} opts - { onStatusUpdate(status, message?) }
+ * @returns {Promise<Object>} - Result object for results.json
+ */
+async function runPipeline(params, opts = {}) {
+  const onStatusUpdate = opts.onStatusUpdate || (() => {});
+  const runId = `run-${Date.now()}`;
+  const startedAtMs = Date.now();
+  const startedAt = new Date(startedAtMs).toISOString();
+  let repoPath = null;
+  const allFixes = [];
+  const ciTimeline = [];
+  let iterationsUsed = 0;
+
+  const buildResult = (status, fixes, error, extra = {}) => {
+    const completedAt = new Date().toISOString();
+    const runtimeMs = Date.now() - startedAtMs;
+    const totalCommits = ciTimeline.filter((e) => e.status === "FAILED").length;
+    const score = computeScore(runtimeMs, totalCommits);
+    return {
+      runId,
+      status,
+      branch: BRANCH_NAME,
+      repoUrl: params.repoUrl || "",
+      startedAt,
+      completedAt,
+      fixes,
+      summary: { totalFixes: fixes.length, testsPassed: error ? false : true },
+      error,
+      iterationsUsed,
+      maxRetries,
+      ciTimeline,
+      score: {
+        baseScore: score.baseScore,
+        speedBonus: score.speedBonus,
+        efficiencyPenalty: score.efficiencyPenalty,
+        finalScore: score.finalScore,
+      },
+      ...extra,
+    };
+  };
+
+  try {
+    const valid = validateParams(params);
+
+    for (let iteration = 1; iteration <= maxRetries; iteration++) {
+      iterationsUsed = iteration;
+      const timestamp = new Date().toISOString();
+
+      let analyzed;
+      if (iteration === 1) {
+        analyzed = await analyze(valid.repoUrl);
+        repoPath = analyzed.repoPath;
+      } else {
+        analyzed = await analyzeExisting(repoPath);
+      }
+
+      if (analyzed.failures.length === 0) {
+        ciTimeline.push({ iteration, status: "PASSED", timestamp });
+        break;
+      }
+
+      ciTimeline.push({ iteration, status: "FAILED", timestamp });
+      const applied = await applyFixes(repoPath, analyzed.failures);
+      allFixes.push(...applied);
+      if (applied.length > 0) {
+        await commitAndPush(repoPath, applied);
+      }
+    }
+
+    const result = buildResult("completed", allFixes, null);
+    writeResults(result);
+    onStatusUpdate("completed");
+    return result;
+  } catch (err) {
+    const errorMsg = err.message || String(err);
+    const result = buildResult("failed", allFixes, errorMsg);
+    writeResults(result);
+    onStatusUpdate("failed", errorMsg);
+    return result;
+  }
+  // TODO: optional cleanup of repoPath temp dir; real CI integration would append timeline from external service
+}
+
+module.exports = { runPipeline };
