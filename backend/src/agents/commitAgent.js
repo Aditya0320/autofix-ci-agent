@@ -2,7 +2,7 @@
  * CommitAgent – stage all, commit with [AI-AGENT] prefix, push to BRANCH_NAME (git CLI).
  */
 
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 const { COMMIT_PREFIX, BRANCH_NAME } = require("../config/constants");
 
 /**
@@ -27,8 +27,8 @@ async function commitAndPush(repoPath, fixes, branchName) {
       fixes.length > 0
         ? `${COMMIT_PREFIX} Fix ${fixes[0].bugType} in ${fixes[0].file}`
         : `${COMMIT_PREFIX} Fix applied`;
-    execSync("git", ["commit", "-m", msg], { cwd: repoPath, stdio: "pipe" });
-    execSync("git", ["push", "-u", "origin", branch], {
+    execFileSync("git", ["commit", "-m", msg], { cwd: repoPath, stdio: "pipe" });
+    execFileSync("git", ["push", "-u", "origin", branch], {
       cwd: repoPath,
       stdio: "pipe",
       timeout: 60000,
