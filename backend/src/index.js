@@ -17,7 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 // Health
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
