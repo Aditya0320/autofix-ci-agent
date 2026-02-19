@@ -35,7 +35,7 @@ function cloneAndCheckout(repoUrl, branchName) {
   const branch = branchName || BRANCH_NAME;
   const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "agent-run-"));
   const cloneUrl = cloneUrlWithToken(repoUrl);
-  execFileSync("git", ["clone", "--depth", "1", cloneUrl, repoPath], {
+  execSync("git", ["clone", "--depth", "1", cloneUrl, repoPath], {
     stdio: "pipe",
     timeout: 60000,
   });
