@@ -1,9 +1,5 @@
 import { useApp } from "../context/AppContext";
 
-const BRANCH_NAME = "TEAM_ETS_DEEPAK_MASEEH_AI_Fix";
-const TEAM_NAME = "TEAM ETS";
-const LEADER_NAME = "DEEPAK MASEEH";
-
 function formatDurationSeconds(startedAt, completedAt) {
   if (!startedAt || !completedAt) return "—";
   const start = new Date(startedAt).getTime();
@@ -30,20 +26,43 @@ export function SummaryCard() {
         </div>
         <div className="summary-row">
           <dt>Team Name</dt>
-          <dd>{TEAM_NAME}</dd>
+          <dd>{results.teamName ?? "—"}</dd>
         </div>
         <div className="summary-row">
           <dt>Leader Name</dt>
-          <dd>{LEADER_NAME}</dd>
+          <dd>{results.leaderName ?? "—"}</dd>
         </div>
         <div className="summary-row">
           <dt>Branch Name</dt>
-          <dd><code>{BRANCH_NAME}</code></dd>
+          <dd><code>{results.branch ?? "—"}</code></dd>
         </div>
+        {results.summary?.totalFailuresDetected != null && (
+          <div className="summary-row">
+            <dt>Total failures detected</dt>
+            <dd>{results.summary.totalFailuresDetected}</dd>
+          </div>
+        )}
         <div className="summary-row">
           <dt>Total fixes applied</dt>
-          <dd>{totalFixes}</dd>
+          <dd>
+            {totalFixes}
+            {results.status === "completed" &&
+              (results.fixes?.length ?? 0) === 0 && (
+                <p className="summary-info-note">
+                  No issues were detected in this repository. The pipeline
+                  completed successfully on the first iteration.
+                </p>
+              )}
+          </dd>
         </div>
+        {results.error && (
+          <div className="summary-row">
+            <dt>Run error</dt>
+            <dd>
+              <p className="summary-error-note">{results.error}</p>
+            </dd>
+          </div>
+        )}
         <div className="summary-row">
           <dt>Final CI/CD status</dt>
           <dd>

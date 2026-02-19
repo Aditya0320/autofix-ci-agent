@@ -4,13 +4,15 @@
   "description": "Backend for RIFT 2026 Autonomous CI/CD Healing Agent",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
     "express": "^4.18.2"
   }
 }

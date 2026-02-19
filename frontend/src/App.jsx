@@ -1,5 +1,6 @@
 import { AppProvider } from "./context/AppContext";
 import { RunForm } from "./components/RunForm";
+import { RunProgress } from "./components/RunProgress";
 import { SummaryCard } from "./components/SummaryCard";
 import { ScorePanel } from "./components/ScorePanel";
 import { FixesTable } from "./components/FixesTable";
@@ -16,6 +17,7 @@ function App() {
         </header>
         <main className="main">
           <RunForm />
+          <RunProgress />
           <SummaryCard />
           <ScorePanel />
           <FixesTable />

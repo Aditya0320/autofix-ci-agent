@@ -3,6 +3,8 @@
  * RIFT 2026 – Autonomous CI/CD Healing Agent (skeleton only).
  */
 
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const agentRoutes = require("./routes/agent");

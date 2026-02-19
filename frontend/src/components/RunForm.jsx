@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 
-const TEAM_NAME = "TEAM ETS";
-const LEADER_NAME = "DEEPAK MASEEH";
+const DEFAULT_TEAM_NAME = "TEAM ETS";
+const DEFAULT_LEADER_NAME = "DEEPAK MASEEH";
 
 export function RunForm() {
   const { apiBaseUrl, setRunStatus, startPolling, stopPolling, runStatus } = useApp();
   const [repoUrl, setRepoUrl] = useState("");
+  const [teamName, setTeamName] = useState(DEFAULT_TEAM_NAME);
+  const [leaderName, setLeaderName] = useState(DEFAULT_LEADER_NAME);
   const isRunning = runStatus === "running";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const url = repoUrl.trim();
+    const team = teamName.trim() || DEFAULT_TEAM_NAME;
+    const leader = leaderName.trim() || DEFAULT_LEADER_NAME;
     if (!url) return;
 
     const base = apiBaseUrl.replace(/\/$/, "");
@@ -23,8 +27,8 @@ export function RunForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           repoUrl: url,
-          teamName: TEAM_NAME,
-          leaderName: LEADER_NAME,
+          teamName: team,
+          leaderName: leader,
         }),
       });
       if (res.ok) {
@@ -58,9 +62,10 @@ export function RunForm() {
         <input
           id="teamName"
           type="text"
-          value={TEAM_NAME}
-          readOnly
-          aria-readonly="true"
+          value={teamName}
+          onChange={(e) => setTeamName(e.target.value)}
+          placeholder="e.g. RIFT ORGANISERS"
+          disabled={isRunning}
         />
       </div>
       <div className="form-row">
@@ -68,9 +73,10 @@ export function RunForm() {
         <input
           id="leaderName"
           type="text"
-          value={LEADER_NAME}
-          readOnly
-          aria-readonly="true"
+          value={leaderName}
+          onChange={(e) => setLeaderName(e.target.value)}
+          placeholder="e.g. Saiyam Kumar"
+          disabled={isRunning}
         />
       </div>
       <div className="form-actions">

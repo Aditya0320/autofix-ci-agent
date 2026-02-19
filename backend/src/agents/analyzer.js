@@ -7,19 +7,22 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { BRANCH_NAME } = require("../config/constants");
+const { isGeminiEnabled, suggestFailures } = require("../services/gemini");
 
 /**
- * Clone repo into temp dir and checkout BRANCH_NAME.
+ * Clone repo into temp dir and checkout branch.
  * @param {string} repoUrl - GitHub repo URL
+ * @param {string} [branchName] - Branch to create (default: BRANCH_NAME from constants)
  * @returns {string} repoPath
  */
-function cloneAndCheckout(repoUrl) {
+function cloneAndCheckout(repoUrl, branchName) {
+  const branch = branchName || BRANCH_NAME;
   const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "agent-run-"));
   execSync(`git clone --depth 1 "${repoUrl}" "${repoPath}"`, {
     stdio: "pipe",
     timeout: 60000,
   });
-  execSync(`git checkout -b "${BRANCH_NAME}"`, {
+  execSync(`git checkout -b "${branch}"`, {
     cwd: repoPath,
     stdio: "pipe",
   });
@@ -106,12 +109,102 @@ function detectMissingColon(filePath, content) {
 }
 
 /**
+ * Get single-module import name from line, e.g. "import foo" -> "foo". Returns null if not a simple import.
+ */
+function getSingleImportName(line) {
+  const m = line.match(/^\s*import\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Check if identifier is used in content (excluding excludeLineIndex).
+ */
+function isNameUsedInContent(content, name, excludeLineIndex) {
+  const lines = content.split("\n");
+  const re = new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b");
+  for (let i = 0; i < lines.length; i++) {
+    if (i === excludeLineIndex) continue;
+    if (re.test(lines[i])) return true;
+  }
+  return false;
+}
+
+/**
+ * Detect unused single-module imports other than "os" (os is handled by LINTING).
+ */
+function detectUnusedImportGeneral(filePath, content) {
+  const failures = [];
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const name = getSingleImportName(lines[i]);
+    if (!name || name === "os") continue;
+    if (!isNameUsedInContent(content, name, i)) {
+      failures.push({
+        file: filePath,
+        line: i + 1,
+        bugType: "IMPORT",
+        message: "Unused import: " + name,
+      });
+    }
+  }
+  return failures;
+}
+
+/**
+ * Normalize leading whitespace to count of spaces (tabs = 4 spaces).
+ */
+function indentSpaces(line) {
+  const m = line.match(/^[\t ]*/);
+  if (!m) return 0;
+  return m[0].replace(/\t/g, "    ").length;
+}
+
+/**
+ * Detect indentation issues: mixed tabs/spaces, and wrong indent after ':'.
+ */
+function detectIndentation(filePath, content) {
+  const failures = [];
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const leading = line.match(/^[\t ]*/)?.[0] ?? "";
+    if (/\t/.test(leading) && / /.test(leading)) {
+      failures.push({
+        file: filePath,
+        line: i + 1,
+        bugType: "INDENTATION",
+        message: "Mixed tabs and spaces",
+      });
+    }
+    const trimmed = line.trim();
+    if (trimmed.endsWith(":") && !trimmed.startsWith("#")) {
+      const currentIndent = indentSpaces(line);
+      let j = i + 1;
+      while (j < lines.length && !lines[j].trim()) j++;
+      if (j < lines.length) {
+        const nextIndent = indentSpaces(lines[j]);
+        if (nextIndent <= currentIndent) {
+          failures.push({
+            file: filePath,
+            line: j + 1,
+            bugType: "INDENTATION",
+            message: "Incorrect indent after colon",
+          });
+        }
+      }
+    }
+  }
+  return failures;
+}
+
+/**
  * Analyze repo and return repoPath + list of failures.
  * @param {string} repoUrl - GitHub repo URL
+ * @param {string} [branchName] - Branch to create (default: BRANCH_NAME)
  * @returns {Promise<{ repoPath: string, failures: Array<{ file, line, bugType, message }> }>}
  */
-async function analyze(repoUrl) {
-  const repoPath = cloneAndCheckout(repoUrl);
+async function analyze(repoUrl, branchName) {
+  const repoPath = cloneAndCheckout(repoUrl, branchName);
   const failures = [];
   const pyFiles = findPyFiles(repoPath);
 
@@ -120,6 +213,23 @@ async function analyze(repoUrl) {
     const content = fs.readFileSync(absPath, "utf8");
     failures.push(...detectUnusedImportOs(relPath, content));
     failures.push(...detectMissingColon(relPath, content));
+    failures.push(...detectUnusedImportGeneral(relPath, content));
+    failures.push(...detectIndentation(relPath, content));
+  }
+
+  if (isGeminiEnabled()) {
+    const ruleKey = (f) => `${f.file}:${f.line}`;
+    const ruleSet = new Set(failures.map(ruleKey));
+    for (const relPath of pyFiles) {
+      const absPath = path.join(repoPath, relPath);
+      const content = fs.readFileSync(absPath, "utf8");
+      const suggested = await suggestFailures({ filePath: relPath, content });
+      for (const s of suggested) {
+        if (ruleSet.has(ruleKey(s))) continue;
+        ruleSet.add(ruleKey(s));
+        failures.push(s);
+      }
+    }
   }
 
   return { repoPath, failures };
@@ -139,7 +249,25 @@ async function analyzeExisting(repoPath) {
     const content = fs.readFileSync(absPath, "utf8");
     failures.push(...detectUnusedImportOs(relPath, content));
     failures.push(...detectMissingColon(relPath, content));
+    failures.push(...detectUnusedImportGeneral(relPath, content));
+    failures.push(...detectIndentation(relPath, content));
   }
+
+  if (isGeminiEnabled()) {
+    const ruleKey = (f) => `${f.file}:${f.line}`;
+    const ruleSet = new Set(failures.map(ruleKey));
+    for (const relPath of pyFiles) {
+      const absPath = path.join(repoPath, relPath);
+      const content = fs.readFileSync(absPath, "utf8");
+      const suggested = await suggestFailures({ filePath: relPath, content });
+      for (const s of suggested) {
+        if (ruleSet.has(ruleKey(s))) continue;
+        ruleSet.add(ruleKey(s));
+        failures.push(s);
+      }
+    }
+  }
+
   return { repoPath, failures };
 }
 

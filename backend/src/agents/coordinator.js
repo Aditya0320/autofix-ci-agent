@@ -8,7 +8,16 @@ const { applyFixes } = require("./fixAgent");
 const { commitAndPush } = require("./commitAgent");
 const { writeResults } = require("../utils/results");
 
-const maxRetries = 5;
+const maxRetries = parseInt(process.env.MAX_RETRIES, 10) || 5;
+
+/**
+ * Compute branch name per RIFT spec: TEAM_NAME_LEADER_NAME_AI_Fix (uppercase, spaces → _).
+ */
+function toBranchName(teamName, leaderName) {
+  const t = String(teamName).trim().replace(/\s+/g, "_").toUpperCase();
+  const l = String(leaderName).trim().replace(/\s+/g, "_").toUpperCase();
+  return `${t}_${l}_AI_Fix`;
+}
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const BASE_SCORE = 100;
 const SPEED_BONUS = 10;
@@ -56,21 +65,29 @@ async function runPipeline(params, opts = {}) {
   const allFixes = [];
   const ciTimeline = [];
   let iterationsUsed = 0;
+  let totalFailuresDetected = null;
 
-  const buildResult = (status, fixes, error, extra = {}) => {
+  const buildResult = (status, fixes, error, branch, failuresDetected = null, extra = {}) => {
     const completedAt = new Date().toISOString();
     const runtimeMs = Date.now() - startedAtMs;
     const totalCommits = ciTimeline.filter((e) => e.status === "FAILED").length;
     const score = computeScore(runtimeMs, totalCommits);
+    const summary = {
+      totalFixes: fixes.length,
+      testsPassed: error ? false : true,
+    };
+    if (failuresDetected != null) summary.totalFailuresDetected = failuresDetected;
     return {
       runId,
       status,
-      branch: BRANCH_NAME,
+      branch: branch || BRANCH_NAME,
       repoUrl: params.repoUrl || "",
+      teamName: params.teamName || "",
+      leaderName: params.leaderName || "",
       startedAt,
       completedAt,
       fixes,
-      summary: { totalFixes: fixes.length, testsPassed: error ? false : true },
+      summary,
       error,
       iterationsUsed,
       maxRetries,
@@ -87,6 +104,7 @@ async function runPipeline(params, opts = {}) {
 
   try {
     const valid = validateParams(params);
+    const branchName = toBranchName(valid.teamName, valid.leaderName);
 
     for (let iteration = 1; iteration <= maxRetries; iteration++) {
       iterationsUsed = iteration;
@@ -94,8 +112,9 @@ async function runPipeline(params, opts = {}) {
 
       let analyzed;
       if (iteration === 1) {
-        analyzed = await analyze(valid.repoUrl);
+        analyzed = await analyze(valid.repoUrl, branchName);
         repoPath = analyzed.repoPath;
+        if (totalFailuresDetected === null) totalFailuresDetected = analyzed.failures.length;
       } else {
         analyzed = await analyzeExisting(repoPath);
       }
@@ -109,21 +128,25 @@ async function runPipeline(params, opts = {}) {
       const applied = await applyFixes(repoPath, analyzed.failures);
       allFixes.push(...applied);
       if (applied.length > 0) {
-        await commitAndPush(repoPath, applied);
+        await commitAndPush(repoPath, applied, branchName);
       }
     }
 
     const lastEntry = ciTimeline[ciTimeline.length - 1];
     const passed = lastEntry && lastEntry.status === "PASSED";
     const result = passed
-      ? buildResult("completed", allFixes, null)
-      : buildResult("failed", allFixes, "Max retries reached without passing");
+      ? buildResult("completed", allFixes, null, branchName, totalFailuresDetected)
+      : buildResult("failed", allFixes, "Max retries reached without passing", branchName, totalFailuresDetected);
     writeResults(result);
     onStatusUpdate(result.status, result.error || null);
     return result;
   } catch (err) {
     const errorMsg = err.message || String(err);
-    const result = buildResult("failed", allFixes, errorMsg);
+    const branchName =
+      params && typeof params.teamName === "string" && typeof params.leaderName === "string"
+        ? toBranchName(params.teamName, params.leaderName)
+        : BRANCH_NAME;
+    const result = buildResult("failed", allFixes, errorMsg, branchName, totalFailuresDetected);
     writeResults(result);
     onStatusUpdate("failed", errorMsg);
     return result;

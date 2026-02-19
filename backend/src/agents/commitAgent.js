@@ -9,9 +9,11 @@ const { COMMIT_PREFIX, BRANCH_NAME } = require("../config/constants");
  * Commit and push changes. Uses first fix for message if provided.
  * @param {string} repoPath - Path to repo
  * @param {Array<{ file, line, bugType, fixDescription }>} fixes - Applied fixes (for message)
+ * @param {string} [branchName] - Branch to push (default: BRANCH_NAME from constants)
  * @returns {Promise<{ success: boolean, error?: string }>}
  */
-async function commitAndPush(repoPath, fixes) {
+async function commitAndPush(repoPath, fixes, branchName) {
+  const branch = branchName || BRANCH_NAME;
   try {
     execSync("git add -A", { cwd: repoPath, stdio: "pipe" });
     const status = execSync("git status --short", {
@@ -26,7 +28,7 @@ async function commitAndPush(repoPath, fixes) {
         ? `${COMMIT_PREFIX} Fix ${fixes[0].bugType} in ${fixes[0].file}`
         : `${COMMIT_PREFIX} Fix applied`;
     execSync("git", ["commit", "-m", msg], { cwd: repoPath, stdio: "pipe" });
-    execSync("git", ["push", "-u", "origin", BRANCH_NAME], {
+    execSync("git", ["push", "-u", "origin", branch], {
       cwd: repoPath,
       stdio: "pipe",
       timeout: 60000,
