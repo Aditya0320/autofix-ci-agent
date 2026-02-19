@@ -45,6 +45,12 @@ export function RunForm() {
 
   return (
     <form className="run-form" onSubmit={handleSubmit}>
+      <h2 className="card-title card-title-with-icon">
+        <svg className="card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+        Start a run
+      </h2>
       <div className="form-row">
         <label htmlFor="repoUrl">GitHub Repository URL</label>
         <input

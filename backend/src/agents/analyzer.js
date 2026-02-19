@@ -1,5 +1,8 @@
 /**
- * AnalyzerAgent – clone repo, checkout branch, detect Python issues (unused import, missing colon).
+ * AnalyzerAgent – clone repo, checkout branch, analyze repository.
+ * Works with any GitHub repo: clones and creates branch regardless of language.
+ * Currently runs Python static checks when .py files exist; other languages get structure-only
+ * analysis (no failures). Extensible for test discovery and multi-language support.
  */
 
 const { execSync } = require("child_process");

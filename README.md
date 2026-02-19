@@ -2,7 +2,7 @@
 
 **AI/ML • DevOps Automation • Agentic Systems Track**
 
-An autonomous DevOps agent that clones a GitHub repo, detects issues (LINTING, SYNTAX), applies fixes, commits with `[AI-AGENT]` prefix, and pushes to a branch in the format `TEAM_NAME_LEADER_NAME_AI_Fix`. Results are shown in a React dashboard.
+An autonomous DevOps agent that clones a GitHub repo, detects issues (LINTING, SYNTAX, IMPORT, INDENTATION), applies fixes, commits with `[AI-AGENT]` prefix, and pushes to a branch in the format `TEAM_NAME_LEADER_NAME_AI_Fix`. Results are shown in a React dashboard.
 
 ---
 
@@ -95,6 +95,16 @@ Get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
 ---
 
+## Repository support (any repo)
+
+The agent works with **any GitHub repository**, not only Python:
+
+- **Clone and branch:** Every repo is cloned and the branch `TEAM_NAME_LEADER_NAME_AI_Fix` is created.
+- **Analysis:** The pipeline analyzes the repo structure. When **Python (`.py`) files** are present, it runs static checks (LINTING, SYNTAX, IMPORT, INDENTATION). When there are no `.py` files (e.g. Node, Go, or empty repo), the run completes with zero failures and no fixes.
+- **Extensible:** The architecture supports adding test discovery and run for other ecosystems (e.g. npm test, go test) and additional languages later.
+
+---
+
 ## Usage
 
 1. Open the React dashboard (local or deployed).
@@ -153,10 +163,10 @@ Dashboard shows: File, Bug Type, Line Number, Commit Message, Status (✓ Fixed 
 
 ## Known limitations
 
-- No Docker sandbox (agent runs in Node process).
-- Detection is rule-based (Python: unused imports, missing colon, indentation); optional Gemini can suggest more when `GEMINI_API_KEY` is set.
+- No Docker sandbox (agent runs in Node process); problem statement recommends Docker for sandboxing.
+- Detection is rule-based (Python: unused imports, missing colon, indentation); optional Gemini can suggest more when `GEMINI_API_KEY` is set. LOGIC and TYPE_ERROR are supported in the dashboard when returned by the backend.
 - Push requires Git credentials (token or SSH) for the target repo.
-- CI/CD timeline is simulated (no external CI API).
+- CI/CD timeline is simulated (no external CI API). Test discovery/run (e.g. pytest, jest) can be added as an extension.
 
 ---
 
