@@ -86,8 +86,15 @@ export function RunForm() {
         />
       </div>
       <div className="form-actions">
-        <button type="submit" disabled={isRunning}>
-          {isRunning ? "Running…" : "Run Agent"}
+        <button type="submit" disabled={isRunning} aria-busy={isRunning}>
+          {isRunning ? (
+            <>
+              <span className="run-form-spinner" aria-hidden="true" />
+              Running…
+            </>
+          ) : (
+            "Run Agent"
+          )}
         </button>
       </div>
     </form>

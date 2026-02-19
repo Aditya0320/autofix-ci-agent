@@ -8,7 +8,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const agentRoutes = require("./routes/agent");
-const { writeSampleResults, ensureResultsDir } = require("./utils/results");
+const { ensureResultsDir } = require("./utils/results");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,14 +24,8 @@ app.get("/health", (_req, res) => {
 // Agent API
 app.use("/api", agentRoutes);
 
-// Ensure output dir exists and write sample results if missing (skeleton convenience)
-(function initResults() {
-  ensureResultsDir();
-  const { readResults } = require("./utils/results");
-  if (readResults() === null) {
-    writeSampleResults();
-  }
-})();
+// Ensure output dir exists; results.json is only written after a real run (no sample/fake data)
+ensureResultsDir();
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);

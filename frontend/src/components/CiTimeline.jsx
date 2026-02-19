@@ -15,10 +15,11 @@ function formatTimestamp(iso) {
 
 export function CiTimeline() {
   const { results } = useApp();
-  const timeline = results?.ciTimeline;
-  if (!timeline || !Array.isArray(timeline)) return null;
-
-  const maxRetries = results?.maxRetries ?? timeline.length;
+  const timeline = results && Array.isArray(results.ciTimeline) ? results.ciTimeline : [];
+  const iterationsUsed = results?.iterationsUsed ?? 0;
+  const maxRetries = results?.maxRetries ?? 5;
+  const hasResults = results != null;
+  if (!hasResults) return null;
 
   const statusLower = (s) => (s || "").toLowerCase();
   const CheckIcon = () => (
@@ -43,8 +44,13 @@ export function CiTimeline() {
         </svg>
         CI/CD Status Timeline
       </h2>
+      <p className="ci-timeline-summary">
+        Iterations used: <strong>{iterationsUsed}/{maxRetries}</strong>
+      </p>
       <ul className="ci-timeline-list">
-        {timeline.map((entry, i) => {
+        {timeline.length === 0 ? (
+          <li className="ci-timeline-item ci-timeline-empty">No CI runs recorded for this execution.</li>
+        ) : timeline.map((entry, i) => {
           const status = statusLower(entry.status);
           return (
             <li key={i} className={`ci-timeline-item status-${status}`}>

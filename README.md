@@ -2,7 +2,7 @@
 
 **AI/ML • DevOps Automation • Agentic Systems Track**
 
-An autonomous DevOps agent that clones a GitHub repo, detects issues (LINTING, SYNTAX, IMPORT, INDENTATION), applies fixes, commits with `[AI-AGENT]` prefix, and pushes to a branch in the format `TEAM_NAME_LEADER_NAME_AI_Fix`. Results are shown in a React dashboard.
+An autonomous DevOps agent that clones a GitHub repo, detects issues (LINTING, SYNTAX, LOGIC, TYPE_ERROR, IMPORT, INDENTATION), applies fixes (rule-based + **Gemini API** for LOGIC/TYPE_ERROR), commits with `[AI-AGENT]` prefix, and pushes to a branch in the format `TEAM_NAME_LEADER_NAME_AI_Fix`. Results are shown in a React dashboard.
 
 ---
 
@@ -89,7 +89,7 @@ GEMINI_API_KEY=your_api_key_here
 ```
 
 - **How to set:** Add `GEMINI_API_KEY` to your backend environment (e.g. in Render/Railway env vars or a `.env` file).
-- **What it enables:** When set, the agent may use Gemini to suggest additional failures (within allowed types) and to generate richer fix descriptions. Rule-based LINTING and SYNTAX detection and fixes are unchanged and always take precedence; Gemini never overrides file, line, or bugType for known test cases.
+- **What it enables:** When set, the agent uses Gemini to (1) suggest additional failures (all six types: LINTING, SYNTAX, LOGIC, TYPE_ERROR, IMPORT, INDENTATION), (2) generate richer fix descriptions, and (3) **suggest and apply fixes for LOGIC and TYPE_ERROR bugs** (Gemini returns the corrected line; the agent applies it). Rule-based detection and fixes for LINTING, SYNTAX, IMPORT, INDENTATION are unchanged and take precedence.
 - **If not set:** Behavior is identical to production: rule-based only, no external API calls.
 
 Get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
@@ -122,14 +122,16 @@ The agent works with **any GitHub repository**, not only Python:
 
 ## Supported bug types
 
-| Type       | Description                    | Detection / fix (current)                    |
-|------------|--------------------------------|-----------------------------------------------|
-| LINTING    | Unused import `os`             | Unused `import os` removed                    |
-| SYNTAX     | Missing colon                  | Colon added on if/for/def/elif/else/while/…   |
-| IMPORT     | Unused single-module import    | Unused `import X` removed (X ≠ os)            |
-| INDENTATION| Mixed tabs/spaces, wrong indent| Normalized to spaces; indent after `:` fixed   |
+| Type        | Description                    | Detection / fix (current)                    |
+|-------------|--------------------------------|-----------------------------------------------|
+| LINTING     | Unused import `os`             | Unused `import os` removed                    |
+| SYNTAX      | Missing colon                  | Colon added on if/for/def/elif/else/while/…   |
+| IMPORT      | Unused single-module import    | Unused `import X` removed (X ≠ os)            |
+| INDENTATION | Mixed tabs/spaces, wrong indent| Normalized to spaces; indent after `:` fixed  |
+| LOGIC       | Wrong logic, off-by-one, condition | **Gemini API**: suggests corrected line; agent applies it |
+| TYPE_ERROR  | Type mismatch, wrong type usage    | **Gemini API**: suggests corrected line; agent applies it |
 
-Rule-based detection and fixes are deterministic. Optional Gemini can add suggestions and richer descriptions when `GEMINI_API_KEY` is set.
+Rule-based detection and fixes (LINTING, SYNTAX, IMPORT, INDENTATION) are deterministic. When `GEMINI_API_KEY` is set, Gemini suggests additional failures (all six types) and **applies fixes for LOGIC and TYPE_ERROR** by returning the corrected line.
 
 ---
 
@@ -165,7 +167,7 @@ Dashboard shows: File, Bug Type, Line Number, Commit Message, Status (✓ Fixed 
 ## Known limitations
 
 - No Docker sandbox (agent runs in Node process); problem statement recommends Docker for sandboxing.
-- Detection is rule-based (Python: unused imports, missing colon, indentation); optional Gemini can suggest more when `GEMINI_API_KEY` is set. LOGIC and TYPE_ERROR are supported in the dashboard when returned by the backend.
+- Detection is rule-based for LINTING, SYNTAX, IMPORT, INDENTATION; Gemini (when `GEMINI_API_KEY` is set) suggests LOGIC and TYPE_ERROR and applies fixes for those types. Dashboard displays all six bug types.
 - Push requires Git credentials (token or SSH) for the target repo.
 - CI/CD timeline is simulated (no external CI API). Test discovery/run (e.g. pytest, jest) can be added as an extension.
 

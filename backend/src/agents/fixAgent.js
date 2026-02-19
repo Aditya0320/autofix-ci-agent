@@ -4,7 +4,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { isGeminiEnabled, getFixDescription } = require("../services/gemini");
+const { isGeminiEnabled, getFixDescription, getSuggestedFix } = require("../services/gemini");
 
 /**
  * Normalize leading whitespace to space count (tabs = 4 spaces).
@@ -46,6 +46,7 @@ async function applyFixes(repoPath, failures) {
     .filter((f) => f.bugType === "IMPORT")
     .sort((a, b) => (a.file !== b.file ? 0 : b.line - a.line));
   const indentationFailures = [...failures].filter((f) => f.bugType === "INDENTATION");
+  const logicOrTypeErrors = [...failures].filter((f) => f.bugType === "LOGIC" || f.bugType === "TYPE_ERROR");
 
   for (const f of syntaxFirst) {
     const absPath = path.join(repoPath, f.file);
@@ -150,6 +151,42 @@ async function applyFixes(repoPath, failures) {
         file: f.file,
         line: f.line,
         bugType: "INDENTATION",
+        fixDescription,
+      });
+    }
+  }
+
+  for (const f of logicOrTypeErrors) {
+    const absPath = path.join(repoPath, f.file);
+    if (!fs.existsSync(absPath)) continue;
+    if (!fileLines.has(absPath)) {
+      const content = fs.readFileSync(absPath, "utf8");
+      fileLines.set(absPath, content.split("\n"));
+    }
+    const lines = fileLines.get(absPath);
+    const idx = f.line - 1;
+    if (idx < 0 || idx >= lines.length) continue;
+    const line = lines[idx];
+    if (line === null) continue;
+    const contextBefore = lines.slice(Math.max(0, idx - 2), idx).join("\n");
+    const contextAfter = lines.slice(idx + 1, idx + 3).join("\n");
+    const replacement = await getSuggestedFix({
+      file: f.file,
+      line: f.line,
+      bugType: f.bugType,
+      message: f.message || f.bugType,
+      snippet: line,
+      contextBefore,
+      contextAfter,
+    });
+    if (replacement != null && replacement.length > 0) {
+      const singleLine = replacement.split("\n")[0].trimEnd();
+      lines[idx] = singleLine;
+      const fixDescription = await resolveFixDescription(f.file, f.line, f.bugType, line, `Fixed ${f.bugType}: ${f.message || "applied Gemini suggestion"}`);
+      applied.push({
+        file: f.file,
+        line: f.line,
+        bugType: f.bugType,
         fixDescription,
       });
     }

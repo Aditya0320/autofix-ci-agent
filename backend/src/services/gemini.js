@@ -57,7 +57,7 @@ Reply with only the sentence, no quotes or prefix.`;
   }
 }
 
-const ALLOWED_BUG_TYPES = new Set(["LINTING", "SYNTAX", "IMPORT", "INDENTATION"]);
+const ALLOWED_BUG_TYPES = new Set(["LINTING", "SYNTAX", "LOGIC", "TYPE_ERROR", "IMPORT", "INDENTATION"]);
 
 /**
  * Ask Gemini to suggest failures. Returns array of { file, line, bugType, message } or [].
@@ -68,8 +68,8 @@ const ALLOWED_BUG_TYPES = new Set(["LINTING", "SYNTAX", "IMPORT", "INDENTATION"]
 async function suggestFailures(opts) {
   if (!isGeminiEnabled()) return [];
   const { filePath, content } = opts;
-  const prompt = `You are a Python static analyzer. For the following file, list any issues that match these types only: LINTING (unused import), SYNTAX (missing colon), IMPORT (unused import other than os), INDENTATION (mixed tabs/spaces or wrong indent after colon).
-For each issue reply with exactly one line: LINE:<1-based line number> TYPE:<LINTING|SYNTAX|IMPORT|INDENTATION> MSG:<short message>
+  const prompt = `You are a Python static analyzer. For the following file, list any issues that match these types only: LINTING (unused import), SYNTAX (missing colon), LOGIC (wrong logic, off-by-one, wrong condition), TYPE_ERROR (wrong type usage, type mismatch), IMPORT (unused import other than os), INDENTATION (mixed tabs/spaces or wrong indent after colon).
+For each issue reply with exactly one line: LINE:<1-based line number> TYPE:<LINTING|SYNTAX|LOGIC|TYPE_ERROR|IMPORT|INDENTATION> MSG:<short message>
 File path: ${filePath}
 
 \`\`\`
@@ -85,7 +85,7 @@ Otherwise list one line per issue.`;
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     for (const line of lines) {
       const lineMatch = line.match(/LINE:(\d+)/i);
-      const typeMatch = line.match(/TYPE:(LINTING|SYNTAX|IMPORT|INDENTATION)/i);
+      const typeMatch = line.match(/TYPE:(LINTING|SYNTAX|LOGIC|TYPE_ERROR|IMPORT|INDENTATION)/i);
       const msgMatch = line.match(/MSG:(.+)/i);
       if (!lineMatch || !typeMatch || !ALLOWED_BUG_TYPES.has(typeMatch[1].toUpperCase())) continue;
       const lineNum = parseInt(lineMatch[1], 10);
@@ -99,4 +99,36 @@ Otherwise list one line per issue.`;
   }
 }
 
-module.exports = { isGeminiEnabled, getFixDescription, suggestFailures };
+/**
+ * Ask Gemini to suggest the fixed line for a LOGIC or TYPE_ERROR bug. Used to apply fixes.
+ * @param {{ file: string, line: number, bugType: string, message: string, snippet: string, contextBefore?: string, contextAfter?: string }} opts
+ * @returns {Promise<string|null>} - Replacement line text, or null
+ */
+async function getSuggestedFix(opts) {
+  if (!isGeminiEnabled()) return null;
+  const { file, line, bugType, message, snippet, contextBefore = "", contextAfter = "" } = opts;
+  const prompt = `You are a Python code fixer. Fix the bug on this single line.
+
+File: ${file}, Line: ${line}
+Bug type: ${bugType}
+Issue: ${message}
+
+Context before (previous lines):
+${contextBefore}
+
+Line to fix (return ONLY this line corrected, no other text):
+${snippet || "(empty)"}
+
+Context after (following lines):
+${contextAfter}
+
+Reply with ONLY the corrected line of code, nothing else. No explanation, no markdown, no line number.`;
+  try {
+    const text = await callGemini(prompt);
+    return text && text.length > 0 ? text.trim() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+module.exports = { isGeminiEnabled, getFixDescription, suggestFailures, getSuggestedFix };
