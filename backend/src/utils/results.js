@@ -38,8 +38,9 @@ function writeSampleResults() {
       {
         file: "src/foo.js",
         line: 42,
-        bugType: "SyntaxError",
+        bugType: "SYNTAX",
         fixDescription: "Sample fix description",
+        status: "fixed",
       },
     ],
     summary: {

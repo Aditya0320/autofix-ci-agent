@@ -74,8 +74,13 @@ async function runPipeline(params, opts = {}) {
     const runtimeMs = Date.now() - startedAtMs;
     const totalCommits = overrideCommitCount !== null ? overrideCommitCount : commitCount;
     const score = computeScore(runtimeMs, totalCommits);
+    const fixList = Array.isArray(fixes) ? fixes : [];
+    const fixesWithStatus = fixList.map((f) => ({
+      ...f,
+      status: status === "completed" ? "fixed" : "failed",
+    }));
     const summary = {
-      totalFixes: fixes.length,
+      totalFixes: fixesWithStatus.length,
       testsPassed: error ? false : true,
     };
     if (failuresDetected != null) summary.totalFailuresDetected = failuresDetected;
@@ -88,7 +93,7 @@ async function runPipeline(params, opts = {}) {
       leaderName: params.leaderName || "",
       startedAt,
       completedAt,
-      fixes,
+      fixes: fixesWithStatus,
       summary,
       error,
       iterationsUsed,

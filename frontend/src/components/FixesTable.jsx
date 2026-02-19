@@ -2,11 +2,9 @@ import { useApp } from "../context/AppContext";
 
 export function FixesTable() {
   const { results } = useApp();
-  if (!results) return null;
-  if (!Array.isArray(results.fixes)) return null;
-
-  const fixes = results.fixes;
+  const fixes = results && Array.isArray(results.fixes) ? results.fixes : [];
   const hasFixes = fixes.length > 0;
+  const hasResults = results != null;
 
   const emptyStateIcon = (
     <svg className="fixes-empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -14,6 +12,11 @@ export function FixesTable() {
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   );
+
+  const emptyTitle = !hasResults ? "No run yet" : "All clear";
+  const emptyDesc = !hasResults
+    ? "Complete a run to see applied fixes here (File, Bug Type, Line Number, Commit Message, Status)."
+    : "No fixes were applied in this run. Pipeline passed without changes.";
 
   return (
     <section className="fixes-table-card">
@@ -26,8 +29,8 @@ export function FixesTable() {
       {!hasFixes ? (
         <div className="fixes-empty-state">
           {emptyStateIcon}
-          <p className="fixes-empty-state-title">All clear</p>
-          <p className="fixes-empty-state-desc">No fixes were applied in this run. Pipeline passed without changes.</p>
+          <p className="fixes-empty-state-title">{emptyTitle}</p>
+          <p className="fixes-empty-state-desc">{emptyDesc}</p>
         </div>
       ) : (
         <div className="fixes-table-wrap">
@@ -44,6 +47,8 @@ export function FixesTable() {
             <tbody>
               {fixes.map((fix, i) => {
                 const isFailed = fix.status === "failed" || fix.status === "FAILED";
+                const runFailed = results && results.status === "failed";
+                const showFailed = isFailed || (fix.status == null && runFailed);
                 return (
                   <tr key={i}>
                     <td>{fix.file ?? "—"}</td>
@@ -51,8 +56,8 @@ export function FixesTable() {
                     <td>{fix.line ?? "—"}</td>
                     <td>{fix.commitMessage ?? fix.fixDescription ?? "—"}</td>
                     <td>
-                      <span className={`fix-status ${isFailed ? "fix-status-failed" : "fix-status-fixed"}`}>
-                        {isFailed ? "✗ Failed" : "✓ Fixed"}
+                      <span className={`fix-status ${showFailed ? "fix-status-failed" : "fix-status-fixed"}`}>
+                        {showFailed ? "✗ Failed" : "✓ Fixed"}
                       </span>
                     </td>
                   </tr>
