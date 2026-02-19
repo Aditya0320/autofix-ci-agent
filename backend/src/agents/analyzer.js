@@ -5,12 +5,28 @@
  * analysis (no failures). Extensible for test discovery and multi-language support.
  */
 
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { BRANCH_NAME } = require("../config/constants");
 const { isGeminiEnabled, suggestFailures } = require("../services/gemini");
+
+/**
+ * Normalize GitHub URL to repo root. Strips /blob/..., /tree/..., /raw/..., and trailing slashes.
+ * Clone requires the repo root, not a file or tree URL.
+ */
+function normalizeRepoUrl(repoUrl) {
+  let s = (repoUrl || "").trim();
+  if (!s) return s;
+  const githubMatch = s.match(/^(https?:\/\/github\.com\/[^/]+\/[^/]+)/i);
+  if (githubMatch) return githubMatch[1].replace(/\/$/, "");
+  if (s.startsWith("github.com/") || s.startsWith("https://github.com/")) {
+    const m = s.replace(/^https?:\/\//i, "").match(/^github\.com\/([^/]+\/[^/]+)/i);
+    if (m) return `https://github.com/${m[1]}`;
+  }
+  return s;
+}
 
 /**
  * If GITHUB_TOKEN is set and repoUrl is https://github.com/..., return URL with token for auth.
@@ -20,9 +36,10 @@ function cloneUrlWithToken(repoUrl) {
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   if (!token || typeof token !== "string" || !token.trim()) return repoUrl;
   const trimmed = repoUrl.trim();
-  const match = trimmed.match(/^https:\/\/github\.com\/(.+)$/i);
+  const match = trimmed.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)(?:\/|$)/i);
   if (!match) return repoUrl;
-  return `https://x-access-token:${token.trim()}@github.com/${match[1]}`;
+  const pathPart = match[1];
+  return `https://x-access-token:${token.trim()}@github.com/${pathPart}`;
 }
 
 /**
@@ -33,12 +50,26 @@ function cloneUrlWithToken(repoUrl) {
  */
 function cloneAndCheckout(repoUrl, branchName) {
   const branch = branchName || BRANCH_NAME;
+  const normalizedUrl = normalizeRepoUrl(repoUrl);
+  if (!normalizedUrl || !normalizedUrl.includes("github.com")) {
+    throw new Error("Invalid GitHub repository URL. Use the repo root, e.g. https://github.com/owner/repo (not a file link like /blob/main/file.java)");
+  }
   const repoPath = fs.mkdtempSync(path.join(os.tmpdir(), "agent-run-"));
-  const cloneUrl = cloneUrlWithToken(repoUrl);
-  execSync("git", ["clone", "--depth", "1", cloneUrl, repoPath], {
-    stdio: "pipe",
-    timeout: 60000,
-  });
+  const cloneUrl = cloneUrlWithToken(normalizedUrl);
+  try {
+    execFileSync("git", ["clone", "--depth", "1", cloneUrl, repoPath], {
+      stdio: "pipe",
+      timeout: 60000,
+    });
+  } catch (err) {
+    const msg = err.message || String(err);
+    if (/could not read Username|Authentication failed|Permission denied|repository not found/i.test(msg)) {
+      throw new Error(
+        "Git clone failed (auth or access). For private repos, set GITHUB_TOKEN (or GH_TOKEN) in the backend environment. For public repos, use the repo root URL: https://github.com/owner/repo"
+      );
+    }
+    throw err;
+  }
   execSync(`git checkout -b "${branch}"`, {
     cwd: repoPath,
     stdio: "pipe",

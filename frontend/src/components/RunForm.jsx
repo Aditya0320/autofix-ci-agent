@@ -62,6 +62,7 @@ export function RunForm() {
           required
           disabled={isRunning}
         />
+        <p className="form-hint">Use repo root (e.g. https://github.com/owner/repo). Do not paste a file link (/blob/main/file.java).</p>
       </div>
       <div className="form-row">
         <label htmlFor="teamName">Team Name</label>

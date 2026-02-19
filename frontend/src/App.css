@@ -243,6 +243,11 @@ code {
 .form-row {
   margin-bottom: 1.15rem;
 }
+.form-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
 .form-row:last-of-type {
   margin-bottom: 0;
 }

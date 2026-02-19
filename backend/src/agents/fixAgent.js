@@ -168,8 +168,9 @@ async function applyFixes(repoPath, failures) {
     if (idx < 0 || idx >= lines.length) continue;
     const line = lines[idx];
     if (line === null) continue;
-    const contextBefore = lines.slice(Math.max(0, idx - 2), idx).join("\n");
-    const contextAfter = lines.slice(idx + 1, idx + 3).join("\n");
+    const toContext = (arr) => arr.filter((l) => l !== null).join("\n");
+    const contextBefore = toContext(lines.slice(Math.max(0, idx - 2), idx));
+    const contextAfter = toContext(lines.slice(idx + 1, idx + 3));
     const replacement = await getSuggestedFix({
       file: f.file,
       line: f.line,
