@@ -61,7 +61,11 @@ function readResults() {
     return null;
   }
   const raw = fs.readFileSync(filePath, "utf8");
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 /**

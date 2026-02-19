@@ -113,9 +113,13 @@ async function runPipeline(params, opts = {}) {
       }
     }
 
-    const result = buildResult("completed", allFixes, null);
+    const lastEntry = ciTimeline[ciTimeline.length - 1];
+    const passed = lastEntry && lastEntry.status === "PASSED";
+    const result = passed
+      ? buildResult("completed", allFixes, null)
+      : buildResult("failed", allFixes, "Max retries reached without passing");
     writeResults(result);
-    onStatusUpdate("completed");
+    onStatusUpdate(result.status, result.error || null);
     return result;
   } catch (err) {
     const errorMsg = err.message || String(err);

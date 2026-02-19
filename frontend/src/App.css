@@ -1,0 +1,341 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.75rem;
+}
+
+.subtext {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.main {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 900px;
+}
+
+/* RunForm */
+.run-form {
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.form-row {
+  margin-bottom: 1rem;
+}
+.form-row:last-of-type {
+  margin-bottom: 0;
+}
+.run-form label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+.run-form input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+.run-form input:read-only {
+  opacity: 0.8;
+  cursor: default;
+}
+.run-form input:disabled {
+  opacity: 0.6;
+}
+.form-actions {
+  margin-top: 1rem;
+}
+.run-form button {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #3b82f6;
+  color: #fff;
+  cursor: pointer;
+}
+.run-form button:hover:not(:disabled) {
+  background: #2563eb;
+}
+.run-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* SummaryCard */
+.summary-card {
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.card-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.summary-list {
+  margin: 0;
+}
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.summary-row dt {
+  flex: 0 0 140px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+.summary-row dd {
+  margin: 0;
+  flex: 1;
+  font-size: 0.9rem;
+}
+.summary-row dd code {
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+.status-badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 4px;
+}
+.status-badge.status-passed {
+  background: rgba(34, 197, 94, 0.25);
+  color: #22c55e;
+}
+.status-badge.status-failed {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+}
+
+/* ScorePanel */
+.score-panel {
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.score-breakdown {
+  margin-bottom: 1rem;
+}
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+.score-positive {
+  color: #22c55e;
+}
+.score-negative {
+  color: #ef4444;
+}
+.final-score {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.final-score-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.25rem;
+}
+.final-score-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+.score-progress {
+  margin-top: 1rem;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.score-progress-bar {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* FixesTable */
+.fixes-table-card {
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.fixes-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+.fixes-table-wrap {
+  overflow-x: auto;
+}
+.fixes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.fixes-table th,
+.fixes-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.fixes-table th {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+.fixes-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.fix-status {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 4px;
+}
+.fix-status-fixed {
+  background: rgba(34, 197, 94, 0.25);
+  color: #22c55e;
+}
+.fix-status-failed {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+}
+
+/* CiTimeline */
+.ci-timeline-card {
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.ci-timeline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ci-timeline-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.9rem;
+}
+.ci-timeline-item:last-child {
+  border-bottom: none;
+}
+.ci-timeline-iteration {
+  font-weight: 500;
+  min-width: 100px;
+}
+.ci-timeline-time {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+@media (prefers-color-scheme: light) {
+  .header {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+  }
+  .subtext {
+    color: rgba(0, 0, 0, 0.55);
+  }
+  .run-form,
+  .summary-card,
+  .score-panel,
+  .fixes-table-card,
+  .ci-timeline-card {
+    border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .fixes-empty {
+    color: rgba(0, 0, 0, 0.6);
+  }
+  .fixes-table th,
+  .fixes-table td {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+  }
+  .fixes-table th {
+    color: rgba(0, 0, 0, 0.65);
+  }
+  .fixes-table tbody tr:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .fix-status-fixed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+  }
+  .fix-status-failed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+  }
+  .ci-timeline-item {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+  }
+  .ci-timeline-time {
+    color: rgba(0, 0, 0, 0.55);
+  }
+  .run-form input {
+    border-color: rgba(0, 0, 0, 0.15);
+    background: #fff;
+  }
+  .summary-row dt {
+    color: rgba(0, 0, 0, 0.6);
+  }
+  .summary-row dd code {
+    background: rgba(0, 0, 0, 0.08);
+  }
+  .status-badge.status-passed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+  }
+  .status-badge.status-failed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+  }
+  .final-score-label {
+    color: rgba(0, 0, 0, 0.55);
+  }
+  .score-progress {
+    background: rgba(0, 0, 0, 0.08);
+  }
+}
