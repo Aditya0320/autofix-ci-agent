@@ -13,10 +13,13 @@ export function FixesTable() {
     </svg>
   );
 
-  const emptyTitle = !hasResults ? "No run yet" : "All clear";
+  const runFailed = hasResults && results.status === "failed";
+  const emptyTitle = !hasResults ? "No run yet" : runFailed ? "No fixes applied" : "All clear";
   const emptyDesc = !hasResults
     ? "Complete a run to see applied fixes here (File, Bug Type, Line Number, Commit Message, Status)."
-    : "No fixes were applied in this run. Pipeline passed without changes.";
+    : runFailed
+      ? "No fixes were applied. Run failed before any fixes could be applied (e.g. during analysis or clone)."
+      : "No fixes were applied in this run. Pipeline passed without changes.";
 
   return (
     <section className="fixes-table-card">

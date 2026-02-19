@@ -75,10 +75,9 @@ async function runPipeline(params, opts = {}) {
     const totalCommits = overrideCommitCount !== null ? overrideCommitCount : commitCount;
     const score = computeScore(runtimeMs, totalCommits);
     const fixList = Array.isArray(fixes) ? fixes : [];
-    const fixesWithStatus = fixList.map((f) => ({
-      ...f,
-      status: status === "completed" ? "fixed" : "failed",
-    }));
+    // Fix status = whether this fix was successfully applied (and committed). Every fix in the list
+    // was applied and committed; run status (completed vs failed) can still be failed e.g. due to push.
+    const fixesWithStatus = fixList.map((f) => ({ ...f, status: "fixed" }));
     const summary = {
       totalFixes: fixesWithStatus.length,
       testsPassed: error ? false : true,
